@@ -20,6 +20,7 @@ setup(
         "Flask",
         "flask_sqlalchemy",
         "Flask_Security",
+        "Flask_Marshmallow",
         "validate_email",
         "password_strength",
         "bcrypt",

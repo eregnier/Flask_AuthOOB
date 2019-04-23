@@ -9,13 +9,26 @@ app.config["SECRET_KEY"] = "SECRET"
 app.config["TESTING"] = True
 
 db = SQLAlchemy(app)
-auth = AuthOOB(app, db)
+
+
+class CustomUserMixin:
+    test_field = db.Column(db.String)
+    extra_updatable_fields = ["test_field"]
+    extra_exposed_fields = ["test_field"]
+
+
+auth = AuthOOB(app, db, CustomUserMixin=CustomUserMixin)
 with app.app_context():
     db.create_all()
 client = app.test_client()
 
 
 class TestApi:
+    def login(self):
+        return client.post(
+            "/authoob/login", json={"email": "test@mail.com", "password": "1Password"}
+        ).json["token"]
+
     def test_register(self):
         res = client.post("/authoob/register")
         assert res.status_code == 400 and res.json["message"] == "Missing data"
@@ -66,12 +79,43 @@ class TestApi:
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
 
     def test_token(self):
-        token = client.post(
-            "/authoob/login", json={"email": "test@mail.com", "password": "1Password"}
-        ).json["token"]
+        token = self.login()
         res = client.get("/authoob/token", headers={"Authentication-Token": token})
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
-        res = client.get(
-            "/authoob/token", headers={"Authentication-Token": res.json["token"]}
-        )
+        res = client.get("/authoob/token", headers={"Authentication-Token": token})
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
+
+    def test_profile(self):
+        token = self.login()
+        res = client.get("/authoob/profile", headers={"Authentication-Token": token})
+        assert "create_date" in res.json
+        assert "update_date" in res.json
+        assert "email" in res.json
+        assert "id" in res.json
+        assert "username" in res.json
+        assert "password" not in res.json
+        assert res.json["email"] == "test@mail.com"
+        res = client.get(f"/authoob/profile/{res.json['id']}")
+        assert "email" not in res.json
+        assert "username" in res.json
+        assert "id" in res.json
+        assert "password" not in res.json
+
+    def test_profile_update(self):
+        token = self.login()
+        res = client.get("/authoob/profile", headers={"Authentication-Token": token})
+        user_id = res.json["id"]
+        res = client.put(
+            "/authoob/profile",
+            headers={"Authentication-Token": token},
+            json={
+                "id": user_id,
+                "username": "utopman",
+                "random": "notset",
+                "test_field": "test_value",
+            },
+        )
+        assert res.status_code == 200
+        assert res.json["username"] == "utopman"
+        assert res.json["test_field"] == "test_value"
+        assert "random" not in res.json

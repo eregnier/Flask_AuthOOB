@@ -63,16 +63,39 @@ When the extention is properly loaded some default routes are defined as followi
 {
     method: 'POST',
     route: '/authoob/login',
-    payload: {"email": "register@mail.com", "password1": "1Password", "password2": "1Password"},
+    payload: {"email": "register@mail.com", "password": "1Password"},
     success_response: {token: 'AJWT token'},
     fail_response: {code: '4xx', message: 'message'}
 }
 
 {
     method: 'GET'
-    route: '/authoob/login'
-    payload: {"email": "register@mail.com", "password1": "1Password", "password2": "1Password"}
+    route: '/authoob/token'
+    headers: {"Authentication-Token": 'AJWT token'}
     success_response: {token: 'AJWT token'},
+    fail_response: {code: '4xx', message: 'message'}
+}
+
+{
+    method: 'GET'
+    route: '/authoob/profile'
+    headers: {"Authentication-Token": 'AJWT token'}
+    success_response: 'serialized user data',
+    fail_response: {code: '401', message: 'message'}
+}
+
+{
+    method: 'GET'
+    route: '/authoob/profile/<user_id>'
+    success_response: 'serialized user data',
+    fail_response: {code: '4xx', message: 'message'}
+}
+
+{
+    method: 'PUT'
+    route: '/authoob/profile'
+    payload: ['any', 'updatable' 'fields'] //default: ["username", "firstname", "lastname"]
+    success_response: 'serialized user data',
     fail_response: {code: '4xx', message: 'message'}
 }
 ```
@@ -99,3 +122,16 @@ It is possible to change route prefix from authoob to whatever you want (and is 
 ```python
 authoob = AuthOOB(app, db, prefix="another_auth_prefix")
 ```
+
+It is possible to extend the User model by setting a *CustomUserMixin* property on extention instanciation
+
+```python
+class CustomUserMixin:
+    test_field = db.Column(db.String)
+    extra_updatable_fields = ["test_field"]
+    extra_exposed_fields = ["test_field"]
+
+authoob = AuthOOB(app, db, CustomUserMixin=CustomUserMixin)
+```
+
+This will add the `test_field` field to the user , allows it's update and serialize it's value on `/authoob/profile` calls
