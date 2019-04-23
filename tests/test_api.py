@@ -7,7 +7,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "SECRET"
 app.config["TESTING"] = True
-
 db = SQLAlchemy(app)
 
 

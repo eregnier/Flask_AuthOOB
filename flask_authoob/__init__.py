@@ -38,12 +38,11 @@ class AuthOOB:
 
         self.mail_provider = mail_provider
         if mail_provider is None:
-            if app.config.get("SENDGRID_DEFAULT_FROM", None) and app.config.get(
-                "SENDGRID_API_KEY", None
-            ):
-                from flask_sendgrid import SendGrid
+            apikey = app.config.get("SENDGRID_API_KEY", None)
+            if apikey:
+                from sendgridemailprovider import SendGridEmailProvider
 
-                self.mail_provider = SendGrid(app)
+                self.mail_provider = SendGridEmailProvider(apikey)
 
         mixin = CustomUserMixin
         self.updatable_fields = ["username", "firstname", "lastname"] + getattr(
@@ -233,12 +232,12 @@ class AuthOOB:
             user = User.query.filter_by(email=email).one()
             self.mail_provider.send_mail(
                 from_email="project@mail.com",
-                to_email=[{"email": user.email}],
+                to_emails="titus135@gmail.com",
                 subject="Email confirmation",
-                text="""
+                html="""
                 Please open following link to confirm 
                 account creation : 
-                http://localhost:5000/authoob/activate/{}""".format(
+                <a href="http://localhost:5000/authoob/activate/{0}">activate</a>""".format(
                     user.activation_token
                 ),
             )

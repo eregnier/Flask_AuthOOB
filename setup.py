@@ -19,7 +19,7 @@ setup(
     install_requires=[
         "Flask",
         "flask_sqlalchemy",
-        "flask_sendgrid",
+        "sendgrid",
         "Flask_Security",
         "Flask_Marshmallow",
         "validate_email",
