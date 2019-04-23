@@ -14,8 +14,21 @@ from password_strength import PasswordPolicy
 class AuthOOB:
     def __init__(self, app=None, db=None, prefix="/authoob", CustomUserMixin=None):
         self.prefix = prefix
+
+        if app is not None and db is not None:
+            self.init_app(app, db, CustomUserMixin=CustomUserMixin)
+
+    def init_app(self, app, db, CustomUserMixin=None):
+        assert app is not None and db is not None
+        salt = app.config.get("SECURITY_PASSWORD_SALT", None) or md5(
+            app.config["SECRET_KEY"].encode()
+        )
+        app.config["SECURITY_PASSWORD_SALT"] = salt
+        ma = Marshmallow(app)
+
+        mixin = CustomUserMixin
         self.updatable_fields = ["username", "firstname", "lastname"] + getattr(
-            CustomUserMixin, "extra_updatable_fields", []
+            mixin, "extra_updatable_fields", []
         )
         self.exposed_fields = [
             "id",
@@ -26,19 +39,8 @@ class AuthOOB:
             "create_date",
             "update_date",
             "login_count",
-        ] + getattr(CustomUserMixin, "extra_exposed_fields", [])
-        self.CustomUserMixin = CustomUserMixin if CustomUserMixin else object
-
-        if app is not None and db is not None:
-            self.init_app(app, db)
-
-    def init_app(self, app, db):
-        assert app is not None and db is not None
-        salt = app.config.get("SECURITY_PASSWORD_SALT", None) or md5(
-            app.config["SECRET_KEY"].encode()
-        )
-        app.config["SECURITY_PASSWORD_SALT"] = salt
-        ma = Marshmallow(app)
+        ] + getattr(mixin, "extra_exposed_fields", [])
+        self.CustomUserMixin = mixin if mixin else object
 
         def fail(code=401, message="Authentication failed", data={}):
             abort(make_response(jsonify(message=message, data=data), code))
