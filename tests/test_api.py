@@ -17,7 +17,14 @@ class CustomUserMixin:
     extra_exposed_fields = ["test_field"]
 
 
-auth = AuthOOB(app, db, CustomUserMixin=CustomUserMixin)
+class MockEmailProvider:
+    def send_mail(self, **kwargs):
+        self.args = kwargs
+
+
+auth = AuthOOB(
+    app, db, CustomUserMixin=CustomUserMixin, mail_provider=MockEmailProvider()
+)
 with app.app_context():
     db.create_all()
 client = app.test_client()
@@ -62,7 +69,7 @@ class TestApi:
             },
         )
         assert res.status_code == 200 and "token" in res.json
-        return res.json
+        assert auth.mail_provider.args["from_email"] == "project@mail.com"
 
     def test_login(self):
         res = client.post(
@@ -156,7 +163,7 @@ class TestApi:
             headers={"Authentication-Token": token},
         )
         assert res.status_code == 201
-        res = client.put(
+        res = client.post(
             "/authoob/login", json={"email": "test@mail.com", "password": "2Password"}
         )
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]

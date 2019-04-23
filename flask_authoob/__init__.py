@@ -13,13 +13,21 @@ from password_strength import PasswordPolicy
 
 
 class AuthOOB:
-    def __init__(self, app=None, db=None, prefix="/authoob", CustomUserMixin=None):
+    def __init__(
+        self,
+        app=None,
+        db=None,
+        prefix="/authoob",
+        CustomUserMixin=None,
+        mail_provider=None,
+    ):
         self.prefix = prefix
-
         if app is not None and db is not None:
-            self.init_app(app, db, CustomUserMixin=CustomUserMixin)
+            self.init_app(
+                app, db, CustomUserMixin=CustomUserMixin, mail_provider=mail_provider
+            )
 
-    def init_app(self, app, db, CustomUserMixin=None):
+    def init_app(self, app, db, CustomUserMixin=None, mail_provider=None):
         assert app is not None and db is not None
         salt = (
             app.config.get("SECURITY_PASSWORD_SALT", None)
@@ -27,6 +35,15 @@ class AuthOOB:
         )
         app.config["SECURITY_PASSWORD_SALT"] = salt
         ma = Marshmallow(app)
+
+        self.mail_provider = mail_provider
+        if mail_provider is None:
+            if app.config.get("SENDGRID_DEFAULT_FROM", None) and app.config.get(
+                "SENDGRID_API_KEY", None
+            ):
+                from flask_sendgrid import SendGrid
+
+                self.mail_provider = SendGrid(app)
 
         mixin = CustomUserMixin
         self.updatable_fields = ["username", "firstname", "lastname"] + getattr(
@@ -193,6 +210,10 @@ class AuthOOB:
 
         @app.route("{}/register".format(self.prefix), methods=["POST"])
         def register():
+            if self.mail_provider is None:
+                fail(
+                    code=500, message="No email provider defined, cannot register user"
+                )
             if request.json is None:
                 fail(code=400, message="Missing data")
             password = request.json.get("password1")
@@ -210,4 +231,15 @@ class AuthOOB:
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
+            self.mail_provider.send_mail(
+                from_email="project@mail.com",
+                to_email=[{"email": user.email}],
+                subject="Email confirmation",
+                text="""
+                Please open following link to confirm 
+                account creation : 
+                http://localhost:5000/authoob/activate/{}""".format(
+                    user.activation_token
+                ),
+            )
             return jsonify({"token": user.get_auth_token()})

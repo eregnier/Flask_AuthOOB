@@ -94,7 +94,7 @@ When the extention is properly loaded some default routes are defined as followi
 {
     method: 'PUT'
     route: '/authoob/profile'
-    payload: ['any', 'updatable' 'fields'] //default: ["username", "firstname", "lastname"]
+    payload: {"username": "utopman", "firstname" : "eric", "lastname" : "R"] //default ones, use your own 
     success_response: 'serialized user data',
     fail_response: {code: '4xx', message: 'message'}
 }
@@ -105,6 +105,14 @@ When the extention is properly loaded some default routes are defined as followi
     payload: {"password1": "newPassword", "password2": "newPassword"}
     success_response: 201,
     fail_response: {code: '4xx', message: 'message'}
+}
+
+{
+    method: 'POST'
+    route: '/authoob/activate/<token>'
+    success_response: 201,
+    fail_response: {code: '4xx', message: 'message'},
+    description: 'The route to call from registration mail url'
 }
 ```
 
