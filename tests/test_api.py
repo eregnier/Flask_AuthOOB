@@ -119,3 +119,13 @@ class TestApi:
         assert res.json["username"] == "utopman"
         assert res.json["test_field"] == "test_value"
         assert "random" not in res.json
+
+    def test_user_activation(self):
+        user = auth.User.query.get(1)
+        res = client.post("/authoob/activate/wrong_token")
+        assert res.status_code == 404
+        res = client.post("/authoob/activate/{}".format(user.activation_token))
+        assert res.status_code == 201
+        res = client.post("/authoob/activate/{}".format(user.activation_token))
+        assert res.status_code == 409
+

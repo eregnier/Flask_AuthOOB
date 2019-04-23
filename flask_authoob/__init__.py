@@ -1,5 +1,6 @@
 import datetime
 from hashlib import md5
+from uuid import uuid4
 from validate_email import validate_email
 from flask import jsonify, request, abort, make_response
 from flask_security import Security, SQLAlchemyUserDatastore
@@ -77,7 +78,8 @@ class AuthOOB:
             last_login_ip = db.Column(db.String(100))
             current_login_ip = db.Column(db.String(100))
             login_count = db.Column(db.Integer, default=0)
-            active = db.Column(db.Boolean())
+            active = db.Column(db.Boolean(), default=False)
+            activation_token = db.Column(db.String(), default=lambda: str(uuid4()))
             confirmed_at = db.Column(db.DateTime())
             roles = db.relationship(
                 "Role",
@@ -145,6 +147,25 @@ class AuthOOB:
         def token():
             return jsonify({"token": current_user.get_auth_token()})
 
+        @app.route("{}/activate/<string:token>".format(self.prefix), methods=["POST"])
+        def activate(token):
+            try:
+                user = User.query.filter_by(activation_token=token).one()
+            except Exception:
+                fail(code=404, message="No token match")
+            if not user.active and user.confirmed_at is None:
+                user.active = True
+                user.confirmed_at = datetime.datetime.now()
+                db.session.add(user)
+                db.session.commit()
+                return "", 201
+            else:
+                fail(
+                    code=409,
+                    message="Unable to activate",
+                    data={"a": user.active, "c": user.confirmed_at},
+                )
+
         @app.route("{}/register".format(self.prefix), methods=["POST"])
         def register():
             if request.json is None:
@@ -166,7 +187,9 @@ class AuthOOB:
                 fail(code=400, message="Invalid email given")
             if User.query.filter_by(email=email).count():
                 fail(code=409, message="User already registered")
-            self.user_datastore.create_user(email=email, password=password)
+            self.user_datastore.create_user(
+                email=email, password=password, active=False
+            )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
             return jsonify({"token": user.get_auth_token()})
