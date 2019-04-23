@@ -98,6 +98,14 @@ When the extention is properly loaded some default routes are defined as followi
     success_response: 'serialized user data',
     fail_response: {code: '4xx', message: 'message'}
 }
+
+{
+    method: 'PUT'
+    route: '/authoob/reset_password'
+    payload: {"password1": "newPassword", "password2": "newPassword"}
+    success_response: 201,
+    fail_response: {code: '4xx', message: 'message'}
+}
 ```
 
 ## Add authenticated route to the rest of the application

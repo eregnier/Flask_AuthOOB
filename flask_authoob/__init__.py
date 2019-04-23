@@ -175,7 +175,7 @@ class AuthOOB:
                     data={"a": user.active, "c": user.confirmed_at},
                 )
 
-        @app.route("{}/reset_password".format(self.prefix), methods=["POST"])
+        @app.route("{}/reset_password".format(self.prefix), methods=["PUT"])
         @auth_token_required
         def reset_password():
             if request.json is None:
