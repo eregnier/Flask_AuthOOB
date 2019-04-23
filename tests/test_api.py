@@ -129,3 +129,34 @@ class TestApi:
         res = client.post("/authoob/activate/{}".format(user.activation_token))
         assert res.status_code == 409
 
+    def test_reset_password(self):
+        token = self.login()
+        res = client.post(
+            "/authoob/reset_password", headers={"Authentication-Token": token}
+        )
+        assert res.status_code == 400 and res.json["message"] == "Missing data"
+        res = client.post(
+            "/authoob/reset_password",
+            json={"password1": "weakpass", "password2": "anotherpass"},
+            headers={"Authentication-Token": token},
+        )
+        assert res.status_code == 400 and res.json["message"] == "Password mismatch"
+        res = client.post(
+            "/authoob/reset_password",
+            json={"password1": "weakpass", "password2": "weakpass"},
+            headers={"Authentication-Token": token},
+        )
+        assert (
+            res.status_code == 400
+            and res.json["message"] == "Passwords strength policy invalid"
+        )
+        res = client.post(
+            "/authoob/reset_password",
+            json={"password1": "2Password", "password2": "2Password"},
+            headers={"Authentication-Token": token},
+        )
+        assert res.status_code == 201
+        res = client.post(
+            "/authoob/login", json={"email": "test@mail.com", "password": "2Password"}
+        )
+        assert res.status_code == 200 and list(res.json.keys()) == ["token"]

@@ -5,7 +5,7 @@ from validate_email import validate_email
 from flask import jsonify, request, abort, make_response
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_security.core import current_user
-from flask_security.utils import verify_password
+from flask_security.utils import verify_password, hash_password
 from flask_security.decorators import auth_token_required
 from flask_security import UserMixin, RoleMixin
 from flask_marshmallow import Marshmallow
@@ -21,8 +21,9 @@ class AuthOOB:
 
     def init_app(self, app, db, CustomUserMixin=None):
         assert app is not None and db is not None
-        salt = app.config.get("SECURITY_PASSWORD_SALT", None) or md5(
-            app.config["SECRET_KEY"].encode()
+        salt = (
+            app.config.get("SECURITY_PASSWORD_SALT", None)
+            or md5(app.config["SECRET_KEY"].encode()).hexdigest()
         )
         app.config["SECURITY_PASSWORD_SALT"] = salt
         ma = Marshmallow(app)
@@ -45,6 +46,14 @@ class AuthOOB:
 
         def fail(code=401, message="Authentication failed", data={}):
             abort(make_response(jsonify(message=message, data=data), code))
+
+        policy = PasswordPolicy.from_names(
+            length=8,  # min length: 8
+            uppercase=1,  # need min. 2 uppercase letters
+            numbers=1,  # need min. 2 digits
+            special=0,  # need min. 2 special characters
+            nonletters=0,  # need min. 2 non-letter characters (digits, specials, anything)
+        )
 
         roles_users = db.Table(
             "roles_users",
@@ -166,19 +175,28 @@ class AuthOOB:
                     data={"a": user.active, "c": user.confirmed_at},
                 )
 
+        @app.route("{}/reset_password".format(self.prefix), methods=["POST"])
+        @auth_token_required
+        def reset_password():
+            if request.json is None:
+                fail(code=400, message="Missing data")
+            password1 = request.json.get("password1")
+            password2 = request.json.get("password2")
+            if password1 != password2:
+                fail(code=400, message="Password mismatch")
+            if policy.test(password1):
+                fail(code=400, message="Passwords strength policy invalid")
+            current_user.password = hash_password(password1)
+            db.session.add(current_user)
+            db.session.commit()
+            return "", 201
+
         @app.route("{}/register".format(self.prefix), methods=["POST"])
         def register():
             if request.json is None:
                 fail(code=400, message="Missing data")
             password = request.json.get("password1")
             email = request.json.get("email")
-            policy = PasswordPolicy.from_names(
-                length=8,  # min length: 8
-                uppercase=1,  # need min. 2 uppercase letters
-                numbers=1,  # need min. 2 digits
-                special=0,  # need min. 2 special characters
-                nonletters=0,  # need min. 2 non-letter characters (digits, specials, anything)
-            )
             if policy.test(password):
                 fail(code=400, message="Passwords strength policy invalid")
             if password is None or password != request.json.get("password2"):
