@@ -4,7 +4,7 @@ build:
 	pipenv run python setup.py sdist
 	pipenv run python setup.py bdist_wheel
 
-push: build
+publish: build
 	pipenv run twine upload dist/*
 
 check: build

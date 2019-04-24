@@ -40,7 +40,7 @@ class AuthOOB:
         if mail_provider is None:
             apikey = app.config.get("SENDGRID_API_KEY", None)
             if apikey:
-                from sendgridemailprovider import SendGridEmailProvider
+                from flask_authoob.email_provider import SendGridEmailProvider
 
                 self.mail_provider = SendGridEmailProvider(apikey)
 
