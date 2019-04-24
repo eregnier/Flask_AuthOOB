@@ -1,6 +1,7 @@
 .PHONY: build push clean deploy
 
 build:
+	rm -rf dist
 	pipenv run python setup.py sdist
 	pipenv run python setup.py bdist_wheel
 
