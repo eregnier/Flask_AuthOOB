@@ -16,6 +16,15 @@ db = SQLAlchemy()
 authoob = AuthOOB(app, db)
 ```
 
+Flask app config must have defined the following values
+
+```bash
+APP_URL # app url where redirections are made when user validates email for exemple
+API_URL # api url where lives this extensions routes
+SECRET_KEY # make it possible to generate salt passwords
+EMAIL_SENDER # email that appears in auth sent emails
+```
+
 And that's all !
 
 ## Library options
@@ -94,7 +103,7 @@ When the extention is properly loaded some default routes are defined as followi
 {
     method: 'PUT'
     route: '/authoob/profile'
-    payload: {"username": "utopman", "firstname" : "eric", "lastname" : "R"] //default ones, use your own 
+    payload: {"username": "utopman", "firstname" : "eric", "lastname" : "R"] //default ones, use your own
     success_response: 'serialized user data',
     fail_response: {code: '4xx', message: 'message'}
 }
@@ -139,7 +148,7 @@ It is possible to change route prefix from authoob to whatever you want (and is 
 authoob = AuthOOB(app, db, prefix="another_auth_prefix")
 ```
 
-It is possible to extend the User model by setting a *CustomUserMixin* property on extention instanciation
+It is possible to extend the User model by setting a _CustomUserMixin_ property on extention instanciation
 
 ```python
 class CustomUserMixin:

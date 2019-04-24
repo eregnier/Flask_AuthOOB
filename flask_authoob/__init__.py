@@ -2,7 +2,7 @@ import datetime
 from hashlib import md5
 from uuid import uuid4
 from validate_email import validate_email
-from flask import jsonify, request, abort, make_response
+from flask import jsonify, request, abort, make_response, redirect
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_security.core import current_user
 from flask_security.utils import verify_password, hash_password
@@ -10,6 +10,7 @@ from flask_security.decorators import auth_token_required
 from flask_security import UserMixin, RoleMixin
 from flask_marshmallow import Marshmallow
 from password_strength import PasswordPolicy
+from flask_authoob.email_provider import SendGridEmailProvider
 
 
 class AuthOOB:
@@ -28,7 +29,14 @@ class AuthOOB:
             )
 
     def init_app(self, app, db, CustomUserMixin=None, mail_provider=None):
-        assert app is not None and db is not None
+        assert (
+            app is not None
+            and db is not None
+            and app.config["APP_URL"]
+            and app.config["API_URL"]
+            and app.config["SECRET_KEY"]
+            and app.config["EMAIL_SENDER"]
+        )
         salt = (
             app.config.get("SECURITY_PASSWORD_SALT", None)
             or md5(app.config["SECRET_KEY"].encode()).hexdigest()
@@ -38,11 +46,7 @@ class AuthOOB:
 
         self.mail_provider = mail_provider
         if mail_provider is None:
-            apikey = app.config.get("SENDGRID_API_KEY", None)
-            if apikey:
-                from flask_authoob.email_provider import SendGridEmailProvider
-
-                self.mail_provider = SendGridEmailProvider(apikey)
+            self.mail_provider = SendGridEmailProvider(app)
 
         mixin = CustomUserMixin
         self.updatable_fields = ["username", "firstname", "lastname"] + getattr(
@@ -105,6 +109,7 @@ class AuthOOB:
             login_count = db.Column(db.Integer, default=0)
             active = db.Column(db.Boolean(), default=False)
             activation_token = db.Column(db.String(), default=lambda: str(uuid4()))
+            reset_password_token = db.Column(db.String(), default=lambda: str(uuid4()))
             confirmed_at = db.Column(db.DateTime())
             roles = db.relationship(
                 "Role",
@@ -172,7 +177,7 @@ class AuthOOB:
         def token():
             return jsonify({"token": current_user.get_auth_token()})
 
-        @app.route("{}/activate/<string:token>".format(self.prefix), methods=["POST"])
+        @app.route("{}/activate/<string:token>".format(self.prefix))
         def activate(token):
             try:
                 user = User.query.filter_by(activation_token=token).one()
@@ -183,29 +188,67 @@ class AuthOOB:
                 user.confirmed_at = datetime.datetime.now()
                 db.session.add(user)
                 db.session.commit()
-                return "", 201
-            else:
-                fail(
-                    code=409,
-                    message="Unable to activate",
-                    data={"a": user.active, "c": user.confirmed_at},
+                return redirect(
+                    "{}?validated_user={}".format(app.config["APP_URL"], user.id)
                 )
+            else:
+                fail(code=409, message="Unable to activate")
 
-        @app.route("{}/reset_password".format(self.prefix), methods=["PUT"])
-        @auth_token_required
-        def reset_password():
-            if request.json is None:
-                fail(code=400, message="Missing data")
-            password1 = request.json.get("password1")
-            password2 = request.json.get("password2")
+        def do_reset(payload, user):
+            password1 = payload.get("password1")
+            password2 = payload.get("password2")
             if password1 != password2:
                 fail(code=400, message="Password mismatch")
             if policy.test(password1):
                 fail(code=400, message="Passwords strength policy invalid")
-            current_user.password = hash_password(password1)
-            db.session.add(current_user)
+            user.password = hash_password(password1)
+            user.reset_password_token = None
+            db.session.add(user)
             db.session.commit()
             return "", 201
+
+        @app.route("{}/password/ask".format(self.prefix), methods=["POST"])
+        def ask_reset_password():
+            if request.json is None:
+                fail(code=400, message="Missing data")
+            email = request.json.get("email", None)
+            if email is None:
+                fail(code=400, message="Missing data")
+            try:
+                user = User.query.filter_by(email=email).one()
+            except Exception:
+                fail(code=400, message="Missing data")  # This prevents email scans
+            user.reset_password_token = str(uuid4())
+            db.session.add(user)
+            db.session.commit()
+            link = '<a href="{}?reset_password_token={}">this link</a>'.format(
+                app.config["APP_URL"], user.reset_password_token
+            )
+            self.mail_provider.send_mail(
+                to_emails=user.email,
+                subject="Email reset link",
+                html=("You can reset your password by following {}.").format(link),
+            )
+            return "", 201
+
+        @app.route("{}/password/reset".format(self.prefix), methods=["PUT"])
+        @auth_token_required
+        def reset_password_auth():
+            if request.json is None:
+                fail(code=400, message="Missing data")
+            return do_reset(request.json, current_user)
+
+        @app.route(
+            "{}/password/reset/<string:token>".format(self.prefix), methods=["PUT"]
+        )
+        def reset_password_token(token):
+            if request.json is None:
+                fail(code=400, message="Missing data")
+            try:
+                user = User.query.filter_by(reset_password_token=token).one()
+            except Exception:
+                fail(code=404, message="No token match")
+            return do_reset(request.json, user)
 
         @app.route("{}/register".format(self.prefix), methods=["POST"])
         def register():
@@ -230,15 +273,15 @@ class AuthOOB:
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
+            link = '<a href="{}/authoob/activate/{}">this link</a>'.format(
+                app.config["API_URL"], user.reset_password_token
+            )
             self.mail_provider.send_mail(
-                from_email="project@mail.com",
-                to_emails="titus135@gmail.com",
+                to_emails=user.email,
                 subject="Email confirmation",
-                html="""
-                Please open following link to confirm 
-                account creation : 
-                <a href="http://localhost:5000/authoob/activate/{0}">activate</a>""".format(
-                    user.activation_token
-                ),
+                html=(
+                    "Please activate your account by following "
+                    "{} to confirm your account creation"
+                ).format(link),
             )
             return jsonify({"token": user.get_auth_token()})

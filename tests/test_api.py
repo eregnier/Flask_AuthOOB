@@ -7,6 +7,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///:memory:"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "SECRET"
 app.config["TESTING"] = True
+app.config["EMAIL_SENDER"] = "test@mail.com"
+app.config["API_URL"] = "http://localhost:5000"
+app.config["APP_URL"] = "http://localhost:8080"
 db = SQLAlchemy(app)
 
 
@@ -68,7 +71,9 @@ class TestApi:
             },
         )
         assert res.status_code == 200 and "token" in res.json
-        assert auth.mail_provider.args["from_email"] == "project@mail.com"
+        assert "to_emails" in auth.mail_provider.args
+        assert "subject" in auth.mail_provider.args
+        assert "html" in auth.mail_provider.args
 
     def test_login(self):
         res = client.post(
@@ -128,27 +133,27 @@ class TestApi:
 
     def test_user_activation(self):
         user = auth.User.query.get(1)
-        res = client.post("/authoob/activate/wrong_token")
+        res = client.get("/authoob/activate/wrong_token")
         assert res.status_code == 404
-        res = client.post("/authoob/activate/{}".format(user.activation_token))
-        assert res.status_code == 201
-        res = client.post("/authoob/activate/{}".format(user.activation_token))
+        res = client.get("/authoob/activate/{}".format(user.activation_token))
+        assert res.status_code == 302
+        res = client.get("/authoob/activate/{}".format(user.activation_token))
         assert res.status_code == 409
 
     def test_reset_password(self):
         token = self.login()
         res = client.put(
-            "/authoob/reset_password", headers={"Authentication-Token": token}
+            "/authoob/password/reset", headers={"Authentication-Token": token}
         )
         assert res.status_code == 400 and res.json["message"] == "Missing data"
         res = client.put(
-            "/authoob/reset_password",
+            "/authoob/password/reset",
             json={"password1": "weakpass", "password2": "anotherpass"},
             headers={"Authentication-Token": token},
         )
         assert res.status_code == 400 and res.json["message"] == "Password mismatch"
         res = client.put(
-            "/authoob/reset_password",
+            "/authoob/password/reset",
             json={"password1": "weakpass", "password2": "weakpass"},
             headers={"Authentication-Token": token},
         )
@@ -157,7 +162,7 @@ class TestApi:
             and res.json["message"] == "Passwords strength policy invalid"
         )
         res = client.put(
-            "/authoob/reset_password",
+            "/authoob/password/reset",
             json={"password1": "2Password", "password2": "2Password"},
             headers={"Authentication-Token": token},
         )
@@ -166,3 +171,32 @@ class TestApi:
             "/authoob/login", json={"email": "test@mail.com", "password": "2Password"}
         )
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
+
+        user = auth.User.query.get(1)
+        user.reset_password_token = "123"
+        email = user.email
+        db.session.add(user)
+        db.session.commit()
+        res = client.put(
+            "/authoob/password/reset/123",
+            json={"password1": "3Password", "password2": "3Password"},
+        )
+        assert res.status_code == 201
+        res = client.put(
+            "/authoob/password/reset/123",
+            json={"password1": "3Password", "password2": "3Password"},
+        )
+        assert res.status_code == 404
+        res = client.post(
+            "/authoob/login", json={"email": email, "password": "3Password"}
+        )
+        assert res.status_code == 200 and list(res.json.keys()) == ["token"]
+        res = client.post("/authoob/password/ask", json={"email": email})
+        assert res.status_code == 201
+        user = auth.User.query.filter_by(email=email).one()
+        res = client.put(
+            "/authoob/password/reset/{}".format(user.reset_password_token),
+            json={"password1": "3Password", "password2": "3Password"},
+        )
+        assert res.status_code == 201
+
