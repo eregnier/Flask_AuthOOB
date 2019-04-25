@@ -126,7 +126,7 @@ class AuthOOB:
         self.User = User
         self.ma = ma
 
-        @app.route("{}/login".format(self.prefix), methods=["POST"])
+        @app.route(f"{self.prefix}/login", methods=["POST"])
         def login():
 
             try:
@@ -142,12 +142,12 @@ class AuthOOB:
             else:
                 fail()
 
-        @app.route("{}/profile".format(self.prefix))
+        @app.route(f"{self.prefix}/profile")
         @auth_token_required
         def profile():
             return UserSchema().jsonify(current_user)
 
-        @app.route("{}/profile".format(self.prefix), methods=["PUT"])
+        @app.route(f"{self.prefix}/profile", methods=["PUT"])
         @auth_token_required
         def update_profile():
             data, errors = UserSchema(load_only=self.updatable_fields).load(
@@ -163,7 +163,7 @@ class AuthOOB:
             db.session.commit()
             return UserSchema().jsonify(current_user)
 
-        @app.route("{}/profile/<int:user_id>".format(self.prefix))
+        @app.route(f"{self.prefix}/profile/<int:user_id>")
         def user_profile(user_id):
             try:
                 return UserSchema(only=["username", "id", "created_at"]).jsonify(
@@ -172,12 +172,12 @@ class AuthOOB:
             except Exception:
                 fail(code=404, message="User not found")
 
-        @app.route("{}/token".format(self.prefix))
+        @app.route(f"{self.prefix}/token")
         @auth_token_required
         def token():
             return jsonify({"token": current_user.get_auth_token()})
 
-        @app.route("{}/activate/<string:token>".format(self.prefix))
+        @app.route(f"{self.prefix}/activate/<string:token>")
         def activate(token):
             try:
                 user = User.query.filter_by(activation_token=token).one()
@@ -207,7 +207,7 @@ class AuthOOB:
             db.session.commit()
             return "", 201
 
-        @app.route("{}/password/ask".format(self.prefix), methods=["POST"])
+        @app.route(f"{self.prefix}/password/ask", methods=["POST"])
         def ask_reset_password():
             if request.json is None:
                 fail(code=400, message="Missing data")
@@ -221,26 +221,25 @@ class AuthOOB:
             user.reset_password_token = str(uuid4())
             db.session.add(user)
             db.session.commit()
-            link = '<a href="{}?reset_password_token={}">this link</a>'.format(
-                app.config["APP_URL"], user.reset_password_token
+            link = (
+                f'<a href="{app.config["APP_URL"]}?reset_password_token'
+                f'={user.reset_password_token}">this link</a>'
             )
             self.mail_provider.send_mail(
                 to_emails=user.email,
                 subject="Email reset link",
-                html=("You can reset your password by following {}.").format(link),
+                html=(f"You can reset your password by following {link}."),
             )
             return "", 201
 
-        @app.route("{}/password/reset".format(self.prefix), methods=["PUT"])
+        @app.route(f"{self.prefix}/password/reset", methods=["PUT"])
         @auth_token_required
         def reset_password_auth():
             if request.json is None:
                 fail(code=400, message="Missing data")
             return do_reset(request.json, current_user)
 
-        @app.route(
-            "{}/password/reset/<string:token>".format(self.prefix), methods=["PUT"]
-        )
+        @app.route(f"{self.prefix}/password/reset/<string:token>", methods=["PUT"])
         def reset_password_token(token):
             if request.json is None:
                 fail(code=400, message="Missing data")
@@ -250,7 +249,7 @@ class AuthOOB:
                 fail(code=404, message="No token match")
             return do_reset(request.json, user)
 
-        @app.route("{}/register".format(self.prefix), methods=["POST"])
+        @app.route(f"{self.prefix}/register", methods=["POST"])
         def register():
             if self.mail_provider is None:
                 fail(
@@ -273,15 +272,16 @@ class AuthOOB:
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
-            link = '<a href="{}/authoob/activate/{}">this link</a>'.format(
-                app.config["API_URL"], user.reset_password_token
+            link = (
+                f'<a href="{app.config["API_URL"]}/authoob/'
+                f'activate/{user.reset_password_token}">this link</a>'
             )
             self.mail_provider.send_mail(
                 to_emails=user.email,
                 subject="Email confirmation",
                 html=(
                     "Please activate your account by following "
-                    "{} to confirm your account creation"
-                ).format(link),
+                    f"{link} to confirm your account creation"
+                ),
             )
             return jsonify({"token": user.get_auth_token()})

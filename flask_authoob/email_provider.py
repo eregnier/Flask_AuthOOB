@@ -6,7 +6,7 @@ from sendgrid.helpers.mail import Mail
 class SendGridEmailProvider:
     def __init__(self, app):
         self.apikey = app.config.get("SENDGRID_API_KEY", None)
-        self.sender = self.app.config.get("EMAIL_SENDER")
+        self.sender = app.config.get("EMAIL_SENDER")
         if self.apikey is None:
             raise Exception(
                 "Missing SENDGRID_API_KEY configuration for sendgrid email provider"
@@ -22,4 +22,4 @@ class SendGridEmailProvider:
         try:
             SendGridAPIClient(self.apikey).send(message)
         except Exception as e:
-            print(e.message)
+            print(e)
