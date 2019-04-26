@@ -13,6 +13,23 @@ app.config["APP_URL"] = "http://localhost:8080"
 db = SQLAlchemy(app)
 
 
+class CustomHooks:
+    def __init__(self):
+        self.data = {}
+
+    def pre_register(self, context):
+        self.data["pre_register"] = context
+
+    def post_register(self, context):
+        self.data["post_register"] = context
+
+    def pre_logout(self, context):
+        self.data["pre_logout"] = context
+
+    def post_logout(self, context):
+        self.data["post_logout"] = context
+
+
 class CustomUserMixin:
     test_field = db.Column(db.String)
     extra_updatable_fields = ["test_field"]
@@ -25,7 +42,11 @@ class MockEmailProvider:
 
 
 auth = AuthOOB(
-    app, db, CustomUserMixin=CustomUserMixin, mail_provider=MockEmailProvider()
+    app,
+    db,
+    CustomUserMixin=CustomUserMixin,
+    mail_provider=MockEmailProvider(),
+    custom_hooks=CustomHooks(),
 )
 with app.app_context():
     db.create_all()
@@ -71,6 +92,11 @@ class TestApi:
             },
         )
         assert res.status_code == 200 and "token" in res.json
+        assert (
+            auth.custom_hooks.data["pre_register"]["payload"]["email"]
+            == "test@mail.com"
+        )
+        assert auth.custom_hooks.data["post_register"]["user"].email == "test@mail.com"
         assert "to_emails" in auth.mail_provider.args
         assert "subject" in auth.mail_provider.args
         assert "html" in auth.mail_provider.args
@@ -166,7 +192,7 @@ class TestApi:
             json={"password1": "2Password", "password2": "2Password"},
             headers={"Authentication-Token": token},
         )
-        assert res.status_code == 201
+        assert res.status_code == 204
         res = client.post(
             "/authoob/login", json={"email": "test@mail.com", "password": "2Password"}
         )
@@ -181,7 +207,7 @@ class TestApi:
             "/authoob/password/reset/123",
             json={"password1": "3Password", "password2": "3Password"},
         )
-        assert res.status_code == 201
+        assert res.status_code == 204
         res = client.put(
             "/authoob/password/reset/123",
             json={"password1": "3Password", "password2": "3Password"},
@@ -192,11 +218,22 @@ class TestApi:
         )
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
         res = client.post("/authoob/password/ask", json={"email": email})
-        assert res.status_code == 201
+        assert res.status_code == 204
         user = auth.User.query.filter_by(email=email).one()
         res = client.put(
             "/authoob/password/reset/{}".format(user.reset_password_token),
             json={"password1": "3Password", "password2": "3Password"},
         )
-        assert res.status_code == 201
+        assert res.status_code == 204
+
+    def test_logout(self):
+        res = client.post("/authoob/logout")
+        assert res.status_code == 401
+        res = client.post(
+            "/authoob/login", json={"email": "test@mail.com", "password": "3Password"}
+        )
+        token = res.json["token"]
+        assert res.status_code == 200 and list(res.json.keys()) == ["token"]
+        res = client.post("/authoob/logout", headers={"Authentication-Token": token})
+        assert res.status_code == 204
 

@@ -4,7 +4,7 @@ from uuid import uuid4
 from validate_email import validate_email
 from flask import jsonify, request, abort, make_response, redirect
 from flask_security.core import current_user
-from flask_security.utils import verify_password, hash_password
+from flask_security.utils import verify_password, hash_password, logout_user
 from flask_security.decorators import auth_token_required
 from password_strength import PasswordPolicy
 
@@ -25,6 +25,15 @@ class FlaskOOBRoutes:
 
         def fail(code=401, message="Authentication failed", data={}):
             abort(make_response(jsonify(message=message, data=data), code))
+
+        @app.route(f"{self.prefix}/logout", methods=["POST"])
+        @auth_token_required
+        def logout():
+            user = current_user
+            self.hook("pre_logout", {"user_id": user})
+            logout_user()
+            self.hook("post_logout", None)
+            return "", 204
 
         @app.route(f"{self.prefix}/login", methods=["POST"])
         def login():
@@ -105,7 +114,7 @@ class FlaskOOBRoutes:
             user.reset_password_token = None
             db.session.add(user)
             db.session.commit()
-            return "", 201
+            return "", 204
 
         @app.route(f"{self.prefix}/password/ask", methods=["POST"])
         def ask_reset_password():
@@ -130,7 +139,7 @@ class FlaskOOBRoutes:
                 subject="Email reset link",
                 html=(f"You can reset your password by following {link}."),
             )
-            return "", 201
+            return "", 204
 
         @app.route(f"{self.prefix}/password/reset", methods=["PUT"])
         @auth_token_required
@@ -157,6 +166,7 @@ class FlaskOOBRoutes:
                 )
             if request.json is None:
                 fail(code=400, message="Missing data")
+            self.hook("pre_register", {"payload": request.json})
             password = request.json.get("password1")
             email = request.json.get("email")
             if policy.test(password):
@@ -184,4 +194,5 @@ class FlaskOOBRoutes:
                     f"{link} to confirm your account creation"
                 ),
             )
+            self.hook("post_register", {"user": user})
             return jsonify({"token": user.get_auth_token()})

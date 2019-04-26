@@ -7,9 +7,10 @@ from flask_security import UserMixin, RoleMixin
 from flask_marshmallow import Marshmallow
 from flask_authoob.email_provider import SendGridEmailProvider
 from flask_authoob.routes import FlaskOOBRoutes
+from flask_authoob.hooks import FlaskOOBHooks
 
 
-class AuthOOB(FlaskOOBRoutes):
+class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
     def __init__(
         self,
         app=None,
@@ -18,7 +19,9 @@ class AuthOOB(FlaskOOBRoutes):
         CustomUserMixin=None,
         CustomUserSchemaMixin=None,
         mail_provider=None,
+        custom_hooks=None,
     ):
+        self.custom_hooks = custom_hooks or object()
         self.prefix = prefix
         if app is not None and db is not None:
             self.init_app(
@@ -125,3 +128,4 @@ class AuthOOB(FlaskOOBRoutes):
         self.ma = ma
 
         self.register_routes(app, db)
+        self.register_hooks()

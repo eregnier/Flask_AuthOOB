@@ -78,6 +78,13 @@ When the extention is properly loaded some default routes are defined as followi
 }
 
 {
+    method: 'GET',
+    route: '/authoob/logout',
+    success_response: {token: 'AJWT token'},
+    fail_response: {code: '4xx', message: 'message'}
+}
+
+{
     method: 'GET'
     route: '/authoob/token'
     headers: {"Authentication-Token": 'AJWT token'}
