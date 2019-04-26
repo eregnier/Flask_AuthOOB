@@ -20,15 +20,27 @@ class AuthOOB:
         db=None,
         prefix="/authoob",
         CustomUserMixin=None,
+        CustomUserSchemaMixin=None,
         mail_provider=None,
     ):
         self.prefix = prefix
         if app is not None and db is not None:
             self.init_app(
-                app, db, CustomUserMixin=CustomUserMixin, mail_provider=mail_provider
+                app,
+                db,
+                CustomUserMixin=CustomUserMixin,
+                CustomUserSchemaMixin=CustomUserSchemaMixin,
+                mail_provider=mail_provider,
             )
 
-    def init_app(self, app, db, CustomUserMixin=None, mail_provider=None):
+    def init_app(
+        self,
+        app,
+        db,
+        CustomUserMixin=None,
+        CustomUserSchemaMixin=None,
+        mail_provider=None,
+    ):
         assert (
             app is not None
             and db is not None
@@ -62,7 +74,7 @@ class AuthOOB:
             "update_date",
             "login_count",
         ] + getattr(mixin, "extra_exposed_fields", [])
-        self.CustomUserMixin = mixin if mixin else object
+        self.CustomUserMixin = mixin or object
 
         def fail(code=401, message="Authentication failed", data={}):
             abort(make_response(jsonify(message=message, data=data), code))
@@ -81,7 +93,7 @@ class AuthOOB:
             db.Column("role_id", db.Integer(), db.ForeignKey("role.id")),
         )
 
-        class UserSchema(ma.Schema):
+        class UserSchema(ma.Schema, CustomUserSchemaMixin or object):
             class Meta:
                 # Fields to expose
                 fields = self.exposed_fields
