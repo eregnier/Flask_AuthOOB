@@ -10,6 +10,7 @@ app.config["TESTING"] = True
 app.config["EMAIL_SENDER"] = "test@mail.com"
 app.config["API_URL"] = "http://localhost:5000"
 app.config["APP_URL"] = "http://localhost:8080"
+app.config["USE_VERIFY_PASSWORD_CACHE"] = True
 db = SQLAlchemy(app)
 
 
