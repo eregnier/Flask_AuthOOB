@@ -17,3 +17,6 @@ clean:
 	@- git status
 
 deploy: push clean
+
+test:
+	pipenv run py.test -xs

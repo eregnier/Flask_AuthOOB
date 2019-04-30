@@ -21,7 +21,6 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         mail_provider=None,
         custom_hooks=None,
     ):
-        self.custom_hooks = custom_hooks or object()
         self.prefix = prefix
         if app is not None and db is not None:
             self.init_app(
@@ -30,6 +29,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
                 CustomUserMixin=CustomUserMixin,
                 CustomUserSchemaMixin=CustomUserSchemaMixin,
                 mail_provider=mail_provider,
+                custom_hooks=custom_hooks,
             )
 
     def init_app(
@@ -39,6 +39,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         CustomUserMixin=None,
         CustomUserSchemaMixin=None,
         mail_provider=None,
+        custom_hooks=None,
     ):
         assert (
             app is not None
@@ -54,7 +55,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         )
         app.config["SECURITY_PASSWORD_SALT"] = salt
         ma = Marshmallow(app)
-
+        self.custom_hooks = custom_hooks or object()
         self.mail_provider = mail_provider
         if mail_provider is None:
             self.mail_provider = SendGridEmailProvider(app)
