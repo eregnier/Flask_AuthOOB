@@ -87,6 +87,15 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
                 # Fields to expose
                 fields = self.exposed_fields
 
+            id = ma.Integer(dump_only=True)
+            email = ma.Email(required=True)
+            firstname = ma.String(required=True)
+            lastname = ma.String(required=True)
+            create_date = ma.DateTime(dump_only=True)
+            update_date = ma.DateTime(dump_only=True)
+            login_count = ma.Integer(dump_only=True)
+            last_login_at = ma.DateTime(dump_only=True)
+
         class Role(db.Model, RoleMixin):
             __tablename__ = "role"
             id = db.Column(db.Integer, primary_key=True)
