@@ -151,6 +151,9 @@ class TestApi:
                 "username": "utopman",
                 "random": "notset",
                 "test_field": "test_value",
+                "email": res.json["email"],
+                "firstname": "firstname",
+                "lastname": "lastname",
             },
         )
         assert res.status_code == 200
