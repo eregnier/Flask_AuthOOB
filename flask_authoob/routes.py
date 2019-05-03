@@ -29,14 +29,15 @@ class FlaskOOBRoutes:
         @app.route(f"{self.prefix}/logout", methods=["POST"])
         @auth_token_required
         def logout():
-            user = current_user
-            self.hook("pre_logout", {"user_id": user})
+            self.hook("pre_logout", {"user": current_user})
             logout_user()
             self.hook("post_logout", None)
             return "", 204
 
         @app.route(f"{self.prefix}/login", methods=["POST"])
         def login():
+
+            self.hook("pre_login", {"payload": request.json})
 
             try:
                 user = User.query.filter_by(email=request.json.get("email", None)).one()
@@ -47,6 +48,8 @@ class FlaskOOBRoutes:
                 user.login_count += 1
                 db.session.add(user)
                 db.session.commit()
+                self.hook("post_login", {"payload": request.json, "user": user})
+
                 return jsonify({"token": user.get_auth_token()})
             else:
                 fail()
@@ -54,11 +57,15 @@ class FlaskOOBRoutes:
         @app.route(f"{self.prefix}/profile")
         @auth_token_required
         def profile():
-            return UserSchema().jsonify(current_user)
+            self.hook("pre_profile", {"user": current_user})
+            response = UserSchema().jsonify(current_user)
+            self.hook("post_profile", {"user": current_user, "response": response})
+            return response
 
         @app.route(f"{self.prefix}/profile", methods=["PUT"])
         @auth_token_required
         def update_profile():
+            self.hook("pre_update_profile", {"payload": request.json, "user": current_user})
             data, errors = UserSchema(load_only=self.updatable_fields).load(
                 request.json
             )
@@ -70,24 +77,33 @@ class FlaskOOBRoutes:
                 setattr(current_user, field, data.get(field, None))
             db.session.add(current_user)
             db.session.commit()
-            return UserSchema().jsonify(current_user)
+            response = UserSchema().jsonify(current_user)
+            self.hook("post_update_profile", {"payload": request.json, "response": response, "user": current_user})
+            return response
+
 
         @app.route(f"{self.prefix}/profile/<int:user_id>")
         def user_profile(user_id):
+            self.hook("pre_user_profile", {"user_id": user_id})
             try:
-                return UserSchema(only=["username", "id", "created_at"]).jsonify(
-                    User.query.get(user_id)
-                )
+                user = User.query.get(user_id)
+                response = UserSchema(only=["username", "id", "created_at"]).jsonify(user)
+                self.hook("post_user_profile", {"user": user, "response": response})
+                return response
             except Exception:
                 fail(code=404, message="User not found")
 
         @app.route(f"{self.prefix}/token")
         @auth_token_required
         def token():
-            return jsonify({"token": current_user.get_auth_token()})
+            self.hook("pre_token", {"user": current_user})
+            response = jsonify({"token": current_user.get_auth_token()})
+            self.hook("post_token", {"user": current_user, "response": response})
+            return response
 
         @app.route(f"{self.prefix}/activate/<string:token>")
         def activate(token):
+            self.hook("pre_activate", {"token": token})
             try:
                 user = User.query.filter_by(activation_token=token).one()
             except Exception:
@@ -97,6 +113,7 @@ class FlaskOOBRoutes:
                 user.confirmed_at = datetime.datetime.now()
                 db.session.add(user)
                 db.session.commit()
+                self.hook("post_activate", {"user": user})
                 return redirect(
                     "{}?validated_user={}".format(app.config["APP_URL"], user.id)
                 )
@@ -118,6 +135,7 @@ class FlaskOOBRoutes:
 
         @app.route(f"{self.prefix}/password/ask", methods=["POST"])
         def ask_reset_password():
+            self.hook("pre_ask_reset", {"payload": request.json})
             if request.json is None:
                 fail(code=400, message="Missing data")
             email = request.json.get("email", None)
@@ -139,24 +157,32 @@ class FlaskOOBRoutes:
                 subject="Email reset link",
                 html=(f"You can reset your password by following {link}."),
             )
+            self.hook("post_ask_reset", {"payload": request.json, "user": user})
+
             return "", 204
 
         @app.route(f"{self.prefix}/password/reset", methods=["PUT"])
         @auth_token_required
         def reset_password_auth():
+            self.hook("pre_reset_auth", {"payload": request.json, "user": current_user})
             if request.json is None:
                 fail(code=400, message="Missing data")
-            return do_reset(request.json, current_user)
+            response = do_reset(request.json, current_user)
+            self.hook("post_reset_auth", {"payload": request.json, "user": current_user, "response": response})
+            return response
 
         @app.route(f"{self.prefix}/password/reset/<string:token>", methods=["PUT"])
         def reset_password_token(token):
+            self.hook("pre_reset_token", {"token": token})
             if request.json is None:
                 fail(code=400, message="Missing data")
             try:
                 user = User.query.filter_by(reset_password_token=token).one()
             except Exception:
                 fail(code=404, message="No token match")
-            return do_reset(request.json, user)
+            response = do_reset(request.json, user)
+            self.hook("post_reset_token", {"token": token, "user": user})
+            return response
 
         @app.route(f"{self.prefix}/register", methods=["POST"])
         def register():

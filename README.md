@@ -167,3 +167,170 @@ authoob = AuthOOB(app, db, CustomUserMixin=CustomUserMixin)
 ```
 
 This will add the `test_field` field to the user , allows it's update and serialize it's value on `/authoob/profile` calls
+
+## Hooks
+
+There are available hooks in this library that make it possible to add behaviors at many points of the security layer interaction.
+
+For exemple, let say you want to add an extra behavior on a user registeration, you will have to do the following
+
+
+```python
+# Define your own custom hook class
+class CustomHooks:
+    # Add hook method on register action
+    def post_register(self, context):
+        # There is for each hook a specific context object that is a dict 
+        # with what context looks appropriate depending on the hook
+        # For exemple in the post_register hook, ths context will be {"user": <New User Instance>, "payload" : request.json}
+        try:
+            role_name = "custom_user_role" if context["payload"]["type"] == 1 else "customer"
+            role = authoob.Role.query.filter_by(name=role_name).one()
+        except Exception:
+            abort(400)
+        user = context["user"]
+        user.roles.append(role)
+        db.session.add(user)
+        db.session.commit()
+```
+
+And you have to register your custom hooks class in flask-AuthOOB instance
+
+```python
+authoob.init_app(
+    app,
+    db,
+    # Note that hook is an instance
+    custom_hooks=CustomHooks(), 
+)
+```
+
+And again that is all.
+
+There are hooks for each action (endpoint) that authoob provides with a specific context for **pre** and **post** action. So the following document describes all possibles hooks :
+
+```yaml
+- name: pre_register
+  context-dict: 
+    - name: payload
+      content: request.json content
+
+- name: post_register
+  context-dict: 
+    - name: user
+      content: newly created user
+    - name: payload
+      content: request.json content
+
+- name: pre_login
+  context-dict: 
+    - name: payload
+      content: request.json content
+
+- name: post_login
+  context-dict: 
+    - name: user
+      content: session user
+    - name: payload
+      content: request.json content
+
+- name: pre_profile
+  context-dict: 
+    - name: user
+      content: session user
+
+- name: post_profile
+  context-dict: 
+    - name: user
+      content: session user
+    - name: response
+      content: dumped user profile json response
+
+- name: pre_user_profile
+  context-dict: 
+    - name: user_id
+      content: user id parameter
+
+- name: post_user_profile
+  context-dict: 
+    - name: user
+      content: user instance from user_id parameter
+    - name: response
+      content: dumped user profile json response
+
+- name: pre_token
+  context-dict: 
+    - name: user
+      content: session user
+
+- name: post_token
+  context-dict: 
+    - name: user
+      content: session user
+    - name: response
+      content: dumped token json response
+
+- name: pre_activate
+  context-dict: 
+    - name: token
+      content: activation token
+
+- name: post_activate
+  context-dict: 
+    - name: user
+      content: session user
+
+
+- name: pre_reset_auth
+  context-dict: 
+    - name: payload
+      content: request.json content
+
+- name: post_reset_auth
+  context-dict: 
+    - name: payload
+      content: request.json content
+    - name: user
+      content: session user
+
+- name: pre_reset_token
+  context-dict: 
+    - name: token
+      content: token parameter (from ask reset mail)
+
+- name: post_reset_token
+  context-dict: 
+    - name: user
+      content: user which password is reset
+    - name: token
+      content: token parameter (from ask reset mail)
+
+
+- name: pre_update_profile
+  context-dict: 
+    - name: user
+      content: session user
+    - name: payload
+      content: request.json content
+
+- name: post_update_profile
+  context-dict: 
+    - name: user
+      content: session user
+    - name: payload
+      content: request.json content
+    - name: response
+      content: dumped user profile json response
+
+
+- name: pre_logout
+  context-dict: 
+    - name: user
+      content: user being logout
+
+- name: post_logout
+  context-dict: null
+
+
+
+```
