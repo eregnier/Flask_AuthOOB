@@ -26,6 +26,7 @@ setup(
         "password_strength",
         "bcrypt",
         "psycopg2-binary",
+	"marshmallow-sqlalchemy",
     ],
     classifiers=[
         "Programming Language :: Python",

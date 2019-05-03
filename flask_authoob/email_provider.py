@@ -1,5 +1,6 @@
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+from flask import current_app
 
 
 class SendGridEmailProvider:
@@ -12,6 +13,11 @@ class SendGridEmailProvider:
             )
 
     def send_mail(self, to_emails=None, subject=None, html=None):
+        to_emails = (
+            current_app.config.get("EMAIL_SENDER")
+            if current_app.config.get("FLASK_DEBUG") == 1
+            else to_emails
+        )
         message = Mail(
             from_email=self.sender,
             to_emails=to_emails,

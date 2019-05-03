@@ -194,5 +194,5 @@ class FlaskOOBRoutes:
                     f"{link} to confirm your account creation"
                 ),
             )
-            self.hook("post_register", {"user": user})
+            self.hook("post_register", {"user": user, "payload": request.json})
             return jsonify({"token": user.get_auth_token()})
