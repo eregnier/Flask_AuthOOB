@@ -13,7 +13,7 @@ class SendGridEmailProvider:
             )
 
     def send_mail(self, to_emails=None, subject=None, html=None):
-        if app.config.get("PREVENT_MAIL_SEND"):
+        if current_app.config.get("PREVENT_MAIL_SEND"):
             return
         to_emails = (
             current_app.config.get("EMAIL_SENDER")
