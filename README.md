@@ -334,3 +334,7 @@ There are hooks for each action (endpoint) that authoob provides with a specific
 
 
 ```
+
+## Configuation options
+
+ * ``PREVENT_MAIL_SEND`` : prevent send email, usefull for testing enviroments
