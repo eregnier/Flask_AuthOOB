@@ -65,7 +65,9 @@ class FlaskOOBRoutes:
         @app.route(f"{self.prefix}/profile", methods=["PUT"])
         @auth_token_required
         def update_profile():
-            self.hook("pre_update_profile", {"payload": request.json, "user": current_user})
+            self.hook(
+                "pre_update_profile", {"payload": request.json, "user": current_user}
+            )
             data, errors = UserSchema(load_only=self.updatable_fields).load(
                 request.json
             )
@@ -78,16 +80,20 @@ class FlaskOOBRoutes:
             db.session.add(current_user)
             db.session.commit()
             response = UserSchema().jsonify(current_user)
-            self.hook("post_update_profile", {"payload": request.json, "response": response, "user": current_user})
+            self.hook(
+                "post_update_profile",
+                {"payload": request.json, "response": response, "user": current_user},
+            )
             return response
-
 
         @app.route(f"{self.prefix}/profile/<int:user_id>")
         def user_profile(user_id):
             self.hook("pre_user_profile", {"user_id": user_id})
             try:
                 user = User.query.get(user_id)
-                response = UserSchema(only=["username", "id", "created_at"]).jsonify(user)
+                response = UserSchema(only=["username", "id", "created_at"]).jsonify(
+                    user
+                )
                 self.hook("post_user_profile", {"user": user, "response": response})
                 return response
             except Exception:
@@ -168,7 +174,10 @@ class FlaskOOBRoutes:
             if request.json is None:
                 fail(code=400, message="Missing data")
             response = do_reset(request.json, current_user)
-            self.hook("post_reset_auth", {"payload": request.json, "user": current_user, "response": response})
+            self.hook(
+                "post_reset_auth",
+                {"payload": request.json, "user": current_user, "response": response},
+            )
             return response
 
         @app.route(f"{self.prefix}/password/reset/<string:token>", methods=["PUT"])
@@ -204,7 +213,11 @@ class FlaskOOBRoutes:
             if User.query.filter_by(email=email).count():
                 fail(code=409, message="User already registered")
             self.user_datastore.create_user(
-                email=email, password=password, active=False
+                email=email,
+                password=password,
+                firstname=request.json.get("firstname", None),
+                lastname=request.json.get("lastname", None),
+                active=False,
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
