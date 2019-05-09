@@ -88,7 +88,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
                 fields = self.exposed_fields
 
             id = ma.Integer(dump_only=True)
-            email = ma.Email(required=True)
+            email = ma.Email(required=True, dump_only=True)
             firstname = ma.String(required=True)
             lastname = ma.String(required=True)
             create_date = ma.DateTime(dump_only=True)
