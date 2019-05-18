@@ -82,6 +82,11 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
             db.Column("role_id", db.Integer(), db.ForeignKey("role.id")),
         )
 
+        class RoleSchema(ma.Schema):
+            id = ma.Integer(dump_only=True)
+            name = ma.String()
+            description = ma.String()
+
         class UserSchema(ma.Schema, CustomUserSchemaMixin or object):
             class Meta:
                 # Fields to expose
@@ -135,6 +140,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         self.Role = Role
         self.User = User
         self.UserSchema = UserSchema
+        self.RoleSchema = RoleSchema
         self.ma = ma
 
         self.register_routes(app, db)
