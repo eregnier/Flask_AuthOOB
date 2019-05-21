@@ -221,6 +221,10 @@ class FlaskOOBRoutes:
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
+            # if not self.hook(
+            #     "mail_register", {"user": user, "mail_provider": self.mail_provider}
+            # ):
+            # This is default registration text
             link = (
                 f'<a href="{app.config["API_URL"]}/authoob/'
                 f'activate/{user.reset_password_token}">this link</a>'

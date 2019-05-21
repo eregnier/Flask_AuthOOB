@@ -3,6 +3,6 @@ class FlaskOOBHooks:
         def hook(hook_name, context):
             hook_method = getattr(self.custom_hooks, hook_name, None)
             if hook_method is not None:
-                hook_method(context)
+                return hook_method(context)
 
         self.hook = hook
