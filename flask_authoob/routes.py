@@ -154,15 +154,20 @@ class FlaskOOBRoutes:
             user.reset_password_token = str(uuid4())
             db.session.add(user)
             db.session.commit()
-            link = (
-                f'<a href="{app.config["APP_URL"]}?reset_password_token'
-                f'={user.reset_password_token}">this link</a>'
-            )
-            self.mail_provider.send_mail(
-                to_emails=user.email,
-                subject="Email reset link",
-                html=(f"You can reset your password by following {link}."),
-            )
+            if not self.hook(
+                "mail_ask_reset_password",
+                {"user": user, "mail_provider": self.mail_provider},
+            ):
+                link = (
+                    f'<a href="{app.config["APP_URL"]}?reset_password_token'
+                    f'={user.reset_password_token}">this link</a>'
+                )
+
+                self.mail_provider.send_mail(
+                    to_emails=user.email,
+                    subject="Email reset link",
+                    html=(f"You can reset your password by following {link}."),
+                )
             self.hook("post_ask_reset", {"payload": request.json, "user": user})
 
             return "", 204
@@ -221,21 +226,21 @@ class FlaskOOBRoutes:
             )
             db.session.commit()
             user = User.query.filter_by(email=email).one()
-            # if not self.hook(
-            #     "mail_register", {"user": user, "mail_provider": self.mail_provider}
-            # ):
-            # This is default registration text
-            link = (
-                f'<a href="{app.config["API_URL"]}/authoob/'
-                f'activate/{user.activation_token}">this link</a>'
-            )
-            self.mail_provider.send_mail(
-                to_emails=user.email,
-                subject="Email confirmation",
-                html=(
-                    "Please activate your account by following "
-                    f"{link} to confirm your account creation"
-                ),
-            )
+            if not self.hook(
+                "mail_register", {"user": user, "mail_provider": self.mail_provider}
+            ):
+                # This is default registration text
+                link = (
+                    f'<a href="{app.config["API_URL"]}/authoob/'
+                    f'activate/{user.activation_token}">this link</a>'
+                )
+                self.mail_provider.send_mail(
+                    to_emails=user.email,
+                    subject="Email confirmation",
+                    html=(
+                        "Please activate your account by following "
+                        f"{link} to confirm your account creation"
+                    ),
+                )
             self.hook("post_register", {"user": user, "payload": request.json})
             return jsonify({"token": user.get_auth_token()})
