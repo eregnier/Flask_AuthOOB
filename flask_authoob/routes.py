@@ -227,7 +227,7 @@ class FlaskOOBRoutes:
             # This is default registration text
             link = (
                 f'<a href="{app.config["API_URL"]}/authoob/'
-                f'activate/{user.reset_password_token}">this link</a>'
+                f'activate/{user.activation_token}">this link</a>'
             )
             self.mail_provider.send_mail(
                 to_emails=user.email,
