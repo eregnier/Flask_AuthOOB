@@ -107,6 +107,9 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
             name = db.Column(db.String(80), unique=True)
             description = db.Column(db.String(255))
 
+            def __repr__(self):
+                return f"<{self.id} - {self.name}>"
+
         class User(db.Model, UserMixin, self.CustomUserMixin):
             __tablename__ = "user"
             id = db.Column(db.Integer, primary_key=True)
@@ -131,6 +134,9 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
                 secondary="roles_users",
                 backref=db.backref("users", lazy="dynamic"),
             )
+
+            def __repr__(self):
+                return f"<{self.id} - {self.email}>"
 
         with app.app_context():
             self.user_datastore = SQLAlchemyUserDatastore(db, User, Role)
