@@ -120,9 +120,14 @@ class FlaskOOBRoutes:
                 db.session.add(user)
                 db.session.commit()
                 self.hook("post_activate", {"user": user})
-                return redirect(
-                    "{}?validated_user={}".format(app.config["APP_URL"], user.id)
+                default_redirect = "{}?validated_user={}".format(
+                    app.config["APP_URL"], user.id
                 )
+                hook_url = self.hook(
+                    "mail_activate_redirect",
+                    {"user": user, "app_url": app.config["APP_URL"]},
+                )
+                return redirect(hook_url if hook_url else default_redirect)
             else:
                 fail(code=409, message="Unable to activate")
 
