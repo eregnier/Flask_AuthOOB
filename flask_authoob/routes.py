@@ -44,6 +44,8 @@ class FlaskOOBRoutes:
             except Exception:
                 fail()
 
+            self.hook("before_login", {"payload": request.json, "user": user})
+
             if verify_password(request.json.get("password", ""), user.password):
                 user.login_count += 1
                 db.session.add(user)

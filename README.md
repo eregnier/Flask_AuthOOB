@@ -180,7 +180,7 @@ For exemple, let say you want to add an extra behavior on a user registeration, 
 class CustomHooks:
     # Add hook method on register action
     def post_register(self, context):
-        # There is for each hook a specific context object that is a dict 
+        # There is for each hook a specific context object that is a dict
         # with what context looks appropriate depending on the hook
         # For exemple in the post_register hook, ths context will be {"user": <New User Instance>, "payload" : request.json}
         try:
@@ -201,7 +201,7 @@ authoob.init_app(
     app,
     db,
     # Note that hook is an instance
-    custom_hooks=CustomHooks(), 
+    custom_hooks=CustomHooks(),
 )
 ```
 
@@ -211,95 +211,103 @@ There are hooks for each action (endpoint) that authoob provides with a specific
 
 ```yaml
 - name: pre_register
-  context-dict: 
+  context-dict:
     - name: payload
       content: request.json content
 
 - name: post_register
-  context-dict: 
+  context-dict:
     - name: user
       content: newly created user
     - name: payload
       content: request.json content
 
 - name: pre_login
-  context-dict: 
+  context-dict:
     - name: payload
       content: request.json content
 
+- name: before_login
+  context-dict:
+    - name: payload
+      content: request.json content
+    - name: user
+      content: session user being logged in
+
+
 - name: post_login
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
     - name: payload
       content: request.json content
 
 - name: pre_profile
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
 
 - name: post_profile
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
     - name: response
       content: dumped user profile json response
 
 - name: pre_user_profile
-  context-dict: 
+  context-dict:
     - name: user_id
       content: user id parameter
 
 - name: post_user_profile
-  context-dict: 
+  context-dict:
     - name: user
       content: user instance from user_id parameter
     - name: response
       content: dumped user profile json response
 
 - name: pre_token
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
 
 - name: post_token
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
     - name: response
       content: dumped token json response
 
 - name: pre_activate
-  context-dict: 
+  context-dict:
     - name: token
       content: activation token
 
 - name: post_activate
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
 
 
 - name: pre_reset_auth
-  context-dict: 
+  context-dict:
     - name: payload
       content: request.json content
 
 - name: post_reset_auth
-  context-dict: 
+  context-dict:
     - name: payload
       content: request.json content
     - name: user
       content: session user
 
 - name: pre_reset_token
-  context-dict: 
+  context-dict:
     - name: token
       content: token parameter (from ask reset mail)
 
 - name: post_reset_token
-  context-dict: 
+  context-dict:
     - name: user
       content: user which password is reset
     - name: token
@@ -307,14 +315,14 @@ There are hooks for each action (endpoint) that authoob provides with a specific
 
 
 - name: pre_update_profile
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
     - name: payload
       content: request.json content
 
 - name: post_update_profile
-  context-dict: 
+  context-dict:
     - name: user
       content: session user
     - name: payload
@@ -324,7 +332,7 @@ There are hooks for each action (endpoint) that authoob provides with a specific
 
 
 - name: pre_logout
-  context-dict: 
+  context-dict:
     - name: user
       content: user being logout
 

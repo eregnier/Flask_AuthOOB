@@ -18,6 +18,9 @@ class CustomHooks:
     def __init__(self):
         self.data = {}
 
+    def before_login(self, context):
+        self.data["before_login"] = context
+
     def pre_register(self, context):
         self.data["pre_register"] = context
 
@@ -103,17 +106,21 @@ class TestApi:
         assert "html" in auth.mail_provider.args
 
     def test_login(self):
+        assert "before_login" not in auth.custom_hooks.data
         res = client.post(
             "/authoob/login", json={"email": "test@mail.com", "password": "wrong pass"}
         )
+
         assert res.status_code == 401 and res.json["message"] == "Authentication failed"
         res = client.post(
             "/authoob/login", json={"email": "wrong email", "password": "1Password"}
         )
         assert res.status_code == 401 and res.json["message"] == "Authentication failed"
+
         res = client.post(
             "/authoob/login", json={"email": "test@mail.com", "password": "1Password"}
         )
+        assert auth.custom_hooks.data["before_login"]["user"].email == "test@mail.com"
         assert res.status_code == 200 and list(res.json.keys()) == ["token"]
 
     def test_token(self):
