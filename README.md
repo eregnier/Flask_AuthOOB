@@ -23,6 +23,7 @@ APP_URL # app url where redirections are made when user validates email for exem
 API_URL # api url where lives this extensions routes
 SECRET_KEY # make it possible to generate salt passwords
 EMAIL_SENDER # email that appears in auth sent emails
+SENDGRID_API_KEY # Sendgrid api key to send email using this provider
 ```
 
 And that's all !
@@ -49,9 +50,14 @@ authoob.User.query.filter_by(email='armin.ronacher@pocoo.org').count()
 Available variables in the **authoob** instance are:
 
 ```python
-authoob.User
+authoob.User # Auth oob base user + Mixins
 authoob.Role
-authoob.roles_users
+authoob.roles_users # Relation many to many between Role and user
+authoob.UserSchema # Marshmallow schema for user
+authoob.RoleSchema # Marshmallow schema for roles
+authoob.ma # Marshmallow instance
+authoob.user_datastore # Flask Security SQLAlchemyUserDatastore instance
+authoob.security # Flask Security Security instance
 ```
 
 These models are almost the one given in Flask-Security implementation exemple
@@ -221,6 +227,12 @@ There are hooks for each action (endpoint) that authoob provides with a specific
       content: newly created user
     - name: payload
       content: request.json content
+- name: mail_register
+  context-dict:
+    - name: user
+      content: user
+    - name: mail_provider
+      content: mail_provider
 
 - name: pre_login
   context-dict:
@@ -233,7 +245,6 @@ There are hooks for each action (endpoint) that authoob provides with a specific
       content: request.json content
     - name: user
       content: session user being logged in
-
 
 - name: post_login
   context-dict:
@@ -288,7 +299,6 @@ There are hooks for each action (endpoint) that authoob provides with a specific
     - name: user
       content: session user
 
-
 - name: pre_reset_auth
   context-dict:
     - name: payload
@@ -330,7 +340,6 @@ There are hooks for each action (endpoint) that authoob provides with a specific
     - name: response
       content: dumped user profile json response
 
-
 - name: pre_logout
   context-dict:
     - name: user
@@ -338,10 +347,27 @@ There are hooks for each action (endpoint) that authoob provides with a specific
 
 - name: post_logout
   context-dict: null
-
-
-
 ```
+
+## Mail hook system
+
+Mail default provider is based on Sendgrid api when an API key is provided on the flask config environment.
+
+It is then possible to manage emails like this :
+
+```python
+class MailHooks:
+    def mail_register(self, context):
+        context["mail_provider"].send_mail(
+            to_emails=['me@home.fr', 'you@anywhere.com', context["user"].email],
+            subject="Email validation",
+            html='<h1>Super email template override</h1>'
+        )
+        return True # Returning true will make the authoob lib use this code and not trigger default email sending
+```
+
+note: Other mail hook will arrive soon.
+
 
 ## Configuation options
 
