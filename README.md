@@ -123,9 +123,17 @@ When the extention is properly loaded some default routes are defined as followi
 
 {
     method: 'PUT'
-    route: '/authoob/reset_password'
+    route: '/authoob/reset/password'
     payload: {"password1": "newPassword", "password2": "newPassword"}
     success_response: 201,
+    fail_response: {code: '4xx', message: 'message'}
+}
+
+{
+    method: 'PUT'
+    route: '/authoob/reset/password/token'
+    payload: {"password1": "newPassword", "password2": "newPassword", "token": "<token-from-ask-email>"}
+    success_response: 204,
     fail_response: {code: '4xx', message: 'message'}
 }
 
