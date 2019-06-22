@@ -215,13 +215,13 @@ class TestApi:
         db.session.add(user)
         db.session.commit()
         res = client.put(
-            "/authoob/password/reset/123",
-            json={"password1": "3Password", "password2": "3Password"},
+            "/authoob/password/reset/token",
+            json={"password1": "3Password", "password2": "3Password", "token": "123"},
         )
         assert res.status_code == 204
         res = client.put(
-            "/authoob/password/reset/123",
-            json={"password1": "3Password", "password2": "3Password"},
+            "/authoob/password/reset/token",
+            json={"password1": "3Password", "password2": "3Password", "token": "123"},
         )
         assert res.status_code == 404
         res = client.post(
@@ -232,8 +232,12 @@ class TestApi:
         assert res.status_code == 204
         user = auth.User.query.filter_by(email=email).one()
         res = client.put(
-            "/authoob/password/reset/{}".format(user.reset_password_token),
-            json={"password1": "3Password", "password2": "3Password"},
+            "/authoob/password/reset/token",
+            json={
+                "password1": "3Password",
+                "password2": "3Password",
+                "token": user.reset_password_token,
+            },
         )
         assert res.status_code == 204
 
