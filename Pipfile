@@ -8,6 +8,7 @@ pytest = "*"
 twine = "*"
 
 [packages]
+twine = "*"
 
 [requires]
 python_version = "3.7"
