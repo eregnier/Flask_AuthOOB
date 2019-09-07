@@ -1,12 +1,13 @@
 import datetime
 from uuid import uuid4
 
-from validate_email import validate_email
-from flask import jsonify, request, abort, make_response, redirect
+from flask import abort, jsonify, make_response, redirect, request
 from flask_security.core import current_user
-from flask_security.utils import verify_password, hash_password, logout_user
 from flask_security.decorators import auth_token_required
+from flask_security.utils import hash_password, logout_user, verify_password
+from marshmallow import ValidationError
 from password_strength import PasswordPolicy
+from validate_email import validate_email
 
 
 class FlaskOOBRoutes:
@@ -70,12 +71,11 @@ class FlaskOOBRoutes:
             self.hook(
                 "pre_update_profile", {"payload": request.json, "user": current_user}
             )
-            data, errors = UserSchema(load_only=self.updatable_fields).load(
-                request.json
-            )
-            if errors:
+            try:
+                data = UserSchema(load_only=self.updatable_fields).load(request.json)
+            except ValidationError as errors:
                 fail(
-                    code=400, message="Invalid parameters for user update", data=errors
+                    code=400, message="Invalid parameters for user update", data=errors.messages
                 )
             for field in self.updatable_fields:
                 setattr(current_user, field, data.get(field, None))
