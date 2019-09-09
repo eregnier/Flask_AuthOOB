@@ -131,7 +131,11 @@ class FlaskOOBRoutes:
                 )
                 return redirect(hook_url if hook_url else default_redirect)
             else:
-                fail(code=409, message="Unable to activate")
+                response = self.hook('already_activated', {"user": user})
+                if response is None:
+                    fail(code=409, message="Unable to activate")
+                else:
+                    return response
 
         def do_reset(payload, user):
             password1 = payload.get("password1")

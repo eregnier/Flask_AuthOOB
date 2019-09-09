@@ -307,6 +307,11 @@ There are hooks for each action (endpoint) that authoob provides with a specific
     - name: user
       content: session user
 
+- name: already_activated
+  context-dict:
+    - name: user
+      content: activated user being checked
+
 - name: pre_reset_auth
   context-dict:
     - name: payload

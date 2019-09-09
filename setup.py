@@ -8,7 +8,7 @@ with open(path.join(cd, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="Flask-AuthOOB",
-    version="0.0.25",
+    version="0.0.26",
     description="Implement quiclky authentification in flask using postgres and flask-security",
     packages=["flask_authoob"],
     long_description_content_type="text/markdown",
