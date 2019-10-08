@@ -61,7 +61,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
             self.mail_provider = SendGridEmailProvider(app)
 
         mixin = CustomUserMixin
-        self.updatable_fields = ["username", "firstname", "lastname"] + getattr(
+        self.updatable_fields = [] + getattr(
             mixin, "extra_updatable_fields", []
         )
         self.exposed_fields = [
