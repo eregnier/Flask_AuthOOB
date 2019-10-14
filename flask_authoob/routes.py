@@ -71,16 +71,17 @@ class FlaskOOBRoutes:
             self.hook(
                 "pre_update_profile", {"payload": request.json, "user": current_user}
             )
-            try:
-                data = UserSchema(load_only=self.updatable_fields).load(request.json)
-            except ValidationError as errors:
-                fail(
-                    code=400, message="Invalid parameters for user update", data=errors.messages
-                )
-            for field in self.updatable_fields:
-                setattr(current_user, field, data.get(field, None))
-            db.session.add(current_user)
-            db.session.commit()
+            #TODO Fix & enhence
+            # try:
+            #     data = UserSchema(load_only=self.updatable_fields).load(request.json)
+            # except ValidationError as errors:
+            #     fail(
+            #         code=400, message="Invalid parameters for user update", data=errors.messages
+            #     )
+            # for field in self.updatable_fields:
+            #     setattr(current_user, field, data.get(field, None))
+            # db.session.add(current_user)
+            # db.session.commit()
             response = UserSchema().jsonify(current_user)
             self.hook(
                 "post_update_profile",
