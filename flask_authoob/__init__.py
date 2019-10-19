@@ -152,7 +152,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         self.register_hooks()
 
     def verify_password(self, password, user_password):
-        return user_password and self.hash_password(password) == password
+        return user_password and self.hash_password(password) == user_password
 
     def hash_password(self, password):
         token = f"{current_app.config['SECURITY_PASSWORD_SALT']}-{password}"
