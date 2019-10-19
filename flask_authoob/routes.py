@@ -231,10 +231,10 @@ class FlaskOOBRoutes:
                 fail(code=400, message="Invalid email given")
             if User.query.filter_by(email=email).count():
                 fail(code=409, message="User already registered")
-            token = f"{app.config["SECURITY_PASSWORD_SALT"]}-{password}").encode()
+
             self.user_datastore.create_user(
                 email=email,
-                password=sha256(token).hexdigest(),
+                password=hash_password(password),
                 firstname=request.json.get("firstname", None),
                 lastname=request.json.get("lastname", None),
                 active=False,

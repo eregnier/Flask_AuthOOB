@@ -62,9 +62,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
             self.mail_provider = SendGridEmailProvider(app)
 
         mixin = CustomUserMixin
-        self.updatable_fields = [] + getattr(
-            mixin, "extra_updatable_fields", []
-        )
+        self.updatable_fields = [] + getattr(mixin, "extra_updatable_fields", [])
         self.exposed_fields = [
             "id",
             "email",
@@ -154,5 +152,4 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         self.register_hooks()
 
     def verify_password(self, password, user_password):
-        token = f"{current_app.config["SECURITY_PASSWORD_SALT"]}-{password}").encode()
-        return user.password is not None and sha256(token).hexdigest() == user_password
+        return user_password is not None and hash_password(password) == password
