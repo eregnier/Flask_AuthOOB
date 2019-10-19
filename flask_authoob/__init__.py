@@ -1,7 +1,8 @@
 import datetime
-from hashlib import md5
+from hashlib import md5, sha256
 from uuid import uuid4
 
+from flask import current_app
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_security import UserMixin, RoleMixin
 from flask_marshmallow import Marshmallow
@@ -149,5 +150,9 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         self.RoleSchema = RoleSchema
         self.ma = ma
 
-        self.register_routes(app, db)
+        self.register_routes(app, db, self)
         self.register_hooks()
+
+    def verify_password(self, password, user_password):
+        token = f"{current_app.config["SECURITY_PASSWORD_SALT"]}-{password}").encode()
+        return user.password is not None and sha256(token).hexdigest() == user_password
