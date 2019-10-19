@@ -4,7 +4,7 @@ from uuid import uuid4
 from flask import abort, jsonify, make_response, redirect, request
 from flask_security.core import current_user
 from flask_security.decorators import auth_token_required
-from flask_security.utils import hash_password, logout_user
+from flask_security.utils import logout_user
 from password_strength import PasswordPolicy
 from validate_email import validate_email
 
@@ -144,7 +144,7 @@ class FlaskOOBRoutes:
                 fail(code=400, message="Password mismatch")
             if policy.test(password1):
                 fail(code=400, message="Passwords strength policy invalid")
-            user.password = hash_password(password1)
+            user.password = authoob.hash_password(password1)
             user.reset_password_token = None
             db.session.add(user)
             db.session.commit()
@@ -233,7 +233,7 @@ class FlaskOOBRoutes:
 
             self.user_datastore.create_user(
                 email=email,
-                password=hash_password(password),
+                password=authoob.hash_password(password),
                 firstname=request.json.get("firstname", None),
                 lastname=request.json.get("lastname", None),
                 active=False,

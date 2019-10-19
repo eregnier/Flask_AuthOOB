@@ -1,10 +1,10 @@
 import datetime
-from hashlib import md5
+from hashlib import md5, sha256
 from uuid import uuid4
 
+from flask import current_app
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_security import UserMixin, RoleMixin
-from flask_security.utils import hash_password
 from flask_marshmallow import Marshmallow
 from flask_authoob.email_provider import SendGridEmailProvider
 from flask_authoob.routes import FlaskOOBRoutes
@@ -152,4 +152,8 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
         self.register_hooks()
 
     def verify_password(self, password, user_password):
-        return user_password is not None and hash_password(password) == password
+        return user_password and self.hash_password(password) == password
+
+    def hash_password(self, password):
+        token = f"{current_app.config['SECURITY_PASSWORD_SALT']}-{password}"
+        return sha256(token.encode()).hexdigest()
