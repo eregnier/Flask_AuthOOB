@@ -7,7 +7,6 @@ from flask_security.decorators import auth_token_required
 from flask_security.utils import hash_password, logout_user
 from password_strength import PasswordPolicy
 from validate_email import validate_email
-from hashlib import sha256
 
 
 class FlaskOOBRoutes:

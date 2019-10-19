@@ -1,10 +1,10 @@
 import datetime
-from hashlib import md5, sha256
+from hashlib import md5
 from uuid import uuid4
 
-from flask import current_app
 from flask_security import Security, SQLAlchemyUserDatastore
 from flask_security import UserMixin, RoleMixin
+from flask_security.utils import hash_password
 from flask_marshmallow import Marshmallow
 from flask_authoob.email_provider import SendGridEmailProvider
 from flask_authoob.routes import FlaskOOBRoutes
