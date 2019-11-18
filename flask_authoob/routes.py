@@ -199,7 +199,7 @@ class FlaskOOBRoutes:
         @app.route(f"{self.prefix}/password/reset/token", methods=["PUT"])
         def reset_password_token():
             self.hook("pre_reset_token", {"token": token})
-            if request.json is None:
+            if request.json is None or not request.json["token"]:
                 fail(code=400, message="Missing data")
             try:
                 user = User.query.filter_by(
@@ -208,6 +208,9 @@ class FlaskOOBRoutes:
             except Exception:
                 fail(code=404, message="No token match")
             response = do_reset(request.json, user)
+            user.reset_password_token = None
+            db.session.add(user)
+            db.session.commit()
             self.hook("post_reset_token", {"token": token, "user": user})
             return response
 

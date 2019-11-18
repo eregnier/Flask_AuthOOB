@@ -126,7 +126,7 @@ class AuthOOB(FlaskOOBRoutes, FlaskOOBHooks):
             login_count = db.Column(db.Integer, default=0)
             active = db.Column(db.Boolean(), default=False)
             activation_token = db.Column(db.String(), default=lambda: str(uuid4()))
-            reset_password_token = db.Column(db.String(), default=lambda: str(uuid4()))
+            reset_password_token = db.Column(db.String(), nullable=True, default=None)
             confirmed_at = db.Column(db.DateTime())
             roles = db.relationship(
                 "Role",
