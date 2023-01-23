@@ -26,7 +26,7 @@ setup(
         "bcrypt",
         "psycopg2-binary",
         "marshmallow-sqlalchemy",
-        "flask-security-too==3.2.0rc1",
+        "flask-security-too==4.1.0",
     ],
     classifiers=[
         "Programming Language :: Python",
